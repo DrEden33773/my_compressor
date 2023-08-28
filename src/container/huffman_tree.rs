@@ -143,13 +143,13 @@ impl<T: Ord + Display + Hash + Clone> HuffmanTree<T> {
       let i_curr = *queue.front().unwrap();
       let i_left = self.nodes[i_curr].i_left;
       let i_right = self.nodes[i_curr].i_right;
-      if i_left.is_some() {
-        self.nodes[i_left.unwrap()].bits_string = self.nodes[i_curr].bits_string.clone() + "0";
-        queue.push_back(i_left.unwrap());
+      if let Some(i_left) = i_left {
+        self.nodes[i_left].bits_string = self.nodes[i_curr].bits_string.clone() + "0";
+        queue.push_back(i_left);
       }
-      if i_right.is_some() {
-        self.nodes[i_right.unwrap()].bits_string = self.nodes[i_curr].bits_string.clone() + "1";
-        queue.push_back(i_right.unwrap());
+      if let Some(i_right) = i_right {
+        self.nodes[i_right].bits_string = self.nodes[i_curr].bits_string.clone() + "1";
+        queue.push_back(i_right);
       }
       queue.pop_front();
     }
