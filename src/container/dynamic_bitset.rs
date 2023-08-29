@@ -23,30 +23,8 @@ pub struct DynamicBitset {
   curr_i_box: usize,
 }
 
-impl std::io::Read for DynamicBitset {
-  fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
-    fn into_le_bytes_arr(num: usize) -> [u8; USIZE_BYTES] {
-      let mut res = [0; USIZE_BYTES];
-      (0..USIZE_BYTES).for_each(|i| {
-        res[i] = (num >> (i * 8)) as u8;
-      });
-      res
-    }
-    let Info {
-      n_bit,
-      n_box,
-      curr_i_box,
-    } = self.get_info();
-    buf[0..USIZE_BYTES].copy_from_slice(&into_le_bytes_arr(*n_bit));
-    buf[USIZE_BYTES..USIZE_BYTES * 2].copy_from_slice(&into_le_bytes_arr(*n_box));
-    buf[USIZE_BYTES * 2..USIZE_BYTES * 3].copy_from_slice(&into_le_bytes_arr(*curr_i_box));
-    buf[USIZE_BYTES * 3..].copy_from_slice(&self.data);
-    Ok(buf.len())
-  }
-}
-
-impl std::io::Write for DynamicBitset {
-  fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+impl From<&[u8]> for DynamicBitset {
+  fn from(buf: &[u8]) -> Self {
     fn from_le_bytes_slice(buf: &[u8]) -> usize {
       let mut res = 0;
       (0..buf.len()).for_each(|i| {
@@ -54,20 +32,40 @@ impl std::io::Write for DynamicBitset {
       });
       res
     }
+    let mut res = Self::default();
     let InfoMut {
       n_bit,
       n_box,
       curr_i_box,
-    } = self.get_info_mut();
+    } = res.get_info_mut();
     *n_bit = from_le_bytes_slice(&buf[0..USIZE_BYTES]);
     *n_box = from_le_bytes_slice(&buf[USIZE_BYTES..USIZE_BYTES * 2]);
     *curr_i_box = from_le_bytes_slice(&buf[USIZE_BYTES * 2..USIZE_BYTES * 3]);
-    self.data = buf[USIZE_BYTES * 3..].to_vec();
-    Ok(buf.len())
+    res.data = buf[USIZE_BYTES * 3..].to_vec();
+    res
   }
+}
 
-  fn flush(&mut self) -> std::io::Result<()> {
-    Ok(())
+impl From<&DynamicBitset> for Vec<u8> {
+  fn from(dbs: &DynamicBitset) -> Self {
+    fn into_le_bytes_arr(num: usize) -> [u8; USIZE_BYTES] {
+      let mut res = [0; USIZE_BYTES];
+      (0..USIZE_BYTES).for_each(|i| {
+        res[i] = (num >> (i * 8)) as u8;
+      });
+      res
+    }
+    let mut buf = vec![];
+    let Info {
+      n_bit,
+      n_box,
+      curr_i_box,
+    } = dbs.get_info();
+    buf.extend_from_slice(&into_le_bytes_arr(*n_bit));
+    buf.extend_from_slice(&into_le_bytes_arr(*n_box));
+    buf.extend_from_slice(&into_le_bytes_arr(*curr_i_box));
+    buf.extend_from_slice(&dbs.data);
+    buf
   }
 }
 
@@ -249,5 +247,16 @@ mod test_dynamic_bitset {
     assert_eq!(String::from(&a), "001011");
     assert_ne!(a, b);
     assert_eq!(a, DBS::from("001011"));
+  }
+
+  #[test]
+  fn chunk_serialize_deserialize() {
+    use super::DynamicBitset as DBS;
+
+    let a = DBS::from("001011");
+    let buf = Vec::from(&a);
+    let c = DBS::from(&buf[..]);
+
+    assert_eq!(String::from(&c), "001011");
   }
 }
