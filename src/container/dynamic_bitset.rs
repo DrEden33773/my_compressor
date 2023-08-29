@@ -255,8 +255,8 @@ mod test_dynamic_bitset {
 
     let a = DBS::from("001011");
     let buf = Vec::from(&a);
-    let c = DBS::from(&buf[..]);
+    let b = DBS::from(&buf[..]);
 
-    assert_eq!(String::from(&c), "001011");
+    assert_eq!(String::from(&b), "001011");
   }
 }
